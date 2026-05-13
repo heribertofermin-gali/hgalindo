@@ -1,8 +1,8 @@
 <?php
 $host = "localhost";
-$user = "root"; // Usuario por defecto de XAMPP
-$pass = "";     // Contraseña por defecto (vacía)
-$db   = "dbprogweb"; // Nuevo nombre de la base de datos
+$user = "hgalindo"; // Usuario
+$pass = "12345678";     // Contraseña
+$db   = "DBProgWeb"; // Nuevo nombre de la base de datos
 
 $conexion = mysqli_connect($host, $user, $pass, $db);
 
