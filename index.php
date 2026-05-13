@@ -285,7 +285,7 @@ include 'conexion.php';
         <span class="sidebar-section-label">Navegación</span>
 
         <a href="index.php" class="sidebar-item active">
-            <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            <i class="bi bi-grid-1x2-fill"></i> Inicio
         </a>
         <a href="visor.php" class="sidebar-item">
             <i class="bi bi-display"></i> Visor
@@ -333,7 +333,7 @@ include 'conexion.php';
                         <div class="drop-icon-wrap">
                             <i class="bi bi-image-fill" id="drop-bi-icon"></i>
                         </div>
-                        <p class="drop-title" id="file-title">Arrastra aquí tu imagen</p>
+                        <p class="drop-title" id="file-title">Arrastra o agrega aquí tu imagen</p>
                         <p class="drop-hint"  id="file-hint">JPG, PNG o WEBP &middot; máx. 10 MB</p>
                     </div>
                     <input type="file" id="fotoInput" accept="image/*" style="display:none;">
