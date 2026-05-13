@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root"; // Usuario por defecto de XAMPP
 $pass = "";     // Contraseña por defecto (vacía)
-$db   = "galeria_db"; // Nombre exacto de tu captura
+$db   = "dbprogweb"; // Nuevo nombre de la base de datos
 
 $conexion = mysqli_connect($host, $user, $pass, $db);
 

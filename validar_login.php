@@ -1,29 +1,53 @@
 <?php
 session_start();
+/** @var mysqli $conexion */
 include 'conexion.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Limpiamos los datos de entrada
-    $correo   = mysqli_real_escape_string($conexion, $_POST['correo']);
+    // 1. Sanitización de entrada (Vital para prevenir SQL Injection)
+    $correo   = mysqli_real_escape_string($conexion, trim($_POST['correo']));
     $password = $_POST['password'];
 
-    $sql = "SELECT * FROM usuarios WHERE correo = '$correo'";
+    // 2. Consulta a la tabla usuarios de la base de datos DBProgWeb
+    $sql = "SELECT id, nombre, correo, password FROM usuarios WHERE correo = '$correo'";
     $resultado = mysqli_query($conexion, $sql);
-    $usuario   = mysqli_fetch_assoc($resultado);
 
-    // Verificamos si el usuario existe y si la contraseña coincide con el hash de la DB
-    if ($usuario && password_verify($password, $usuario['password'])) {
-        
-        // Creamos la sesión usando el nombre que aparece en tu captura (GERMAN o cortez)
-        $_SESSION['usuario'] = $usuario['nombre']; 
-        
-        // CRÍTICO: Guardamos la sesión físicamente antes del redireccionamiento
-        session_write_close(); 
-        
-        header("Location: index.php");
-        exit();
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $usuario = mysqli_fetch_assoc($resultado);
+
+        // 3. Verificamos la contraseña contra el hash de la DB
+        if (password_verify($password, $usuario['password'])) {
+            
+            // Regeneramos el ID de sesión (Buena práctica de seguridad)
+            session_regenerate_id(true);
+            
+            // Guardamos los datos necesarios en la sesión
+            $_SESSION['id_usuario'] = $usuario['id'];
+            $_SESSION['usuario']    = $usuario['nombre']; 
+            
+            // Aseguramos el cierre de escritura antes de redirigir
+            session_write_close(); 
+            
+            header("Location: index.php");
+            exit();
+        } else {
+            // Error en contraseña
+            mostrarError();
+        }
     } else {
-        echo "<script>alert('Correo o contraseña incorrectos'); window.location='login.php';</script>";
+        // El correo no existe
+        mostrarError();
     }
 }
+
+// Función para manejar el error de forma centralizada
+function mostrarError() {
+    echo "<script>
+            alert('Las credenciales ingresadas son incorrectas.');
+            window.location='login.php';
+          </script>";
+    exit();
+}
+
+mysqli_close($conexion);
 ?>

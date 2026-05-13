@@ -1,18 +1,39 @@
 <?php
+/** @var mysqli $conexion */
 include 'conexion.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validamos que los campos no vengan vacíos
+    // 1. Sanitización de entradas
     $nombre   = mysqli_real_escape_string($conexion, $_POST['nombre']);
     $correo   = mysqli_real_escape_string($conexion, $_POST['correo']);
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $plain_pass = $_POST['password'];
 
-    $sql = "INSERT INTO usuarios (nombre, correo, password) VALUES ('$nombre', '$correo', '$password')";
+    // 2. Verificar si el correo ya está registrado
+    $checkEmail = "SELECT correo FROM usuarios WHERE correo = '$correo'";
+    $resCheck = mysqli_query($conexion, $checkEmail);
 
-    if (mysqli_query($conexion, $sql)) {
-        echo "<script>alert('¡Cuenta creada con éxito! Inicia sesión.'); window.location='login.php';</script>";
+    if (mysqli_num_rows($resCheck) > 0) {
+        echo "<script>
+                alert('Error: Este correo ya está registrado.');
+                window.history.back();
+              </script>";
     } else {
-        echo "Error al crear cuenta: " . mysqli_error($conexion);
+        // 3. Encriptar contraseña y guardar
+        $password_hash = password_hash($plain_pass, PASSWORD_DEFAULT);
+        
+        $sql = "INSERT INTO usuarios (nombre, correo, password) 
+                VALUES ('$nombre', '$correo', '$password_hash')";
+
+        if (mysqli_query($conexion, $sql)) {
+            echo "<script>
+                    alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
+                    window.location='login.php';
+                  </script>";
+        } else {
+            echo "Error crítico en el sistema: " . mysqli_error($conexion);
+        }
     }
 }
+
+mysqli_close($conexion);
 ?>
