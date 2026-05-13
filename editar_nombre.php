@@ -15,7 +15,7 @@ if (!$id || $nombre === '') {
     exit();
 }
 
-// ── Detecta automáticamente PDO o mysqli ──────────────────────────
+// --── Detecta automáticamente PDO o mysqli ──────────────────────────
 
 // Opción A: PDO  ($pdo)
 if (isset($pdo) && $pdo instanceof PDO) {
