@@ -719,14 +719,11 @@ if (!isset($_SESSION['usuario'])) {
      NAVBAR SUPERIOR
 ================================================================ -->
 <nav class="top-navbar">
-    <a href="index.php" class="navbar-brand-text">TESVG</a>
+    <a href="index.php" class="navbar-brand-text">Programaciòn Web</a>
 
     <ul class="top-nav-links">
         <li><a href="index.php">Inicio</a></li>
         <li><a href="visor.php" class="active">Visor</a></li>
-        <li><a href="#">Características</a></li>
-        <li><a href="#">Preguntas frecuentes</a></li>
-        <li><a href="#">Acerca de</a></li>
     </ul>
 
     <div class="navbar-right">
@@ -747,22 +744,13 @@ if (!isset($_SESSION['usuario'])) {
         <span class="sidebar-section-label">Navegación</span>
 
         <a href="index.php" class="sidebar-item">
-            <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            <i class="bi bi-grid-1x2-fill"></i> Inicio
         </a>
         <a href="visor.php" class="sidebar-item active">
             <i class="bi bi-display-fill"></i> Visor Activo
-        </a>
+        <!-- se borro cosas que no se ocupaban -->
 
-        <span class="sidebar-section-label">Sistema</span>
-
-        <a href="#" class="sidebar-item">
-            <i class="bi bi-gear"></i> Configuración
-        </a>
-        <a href="#" class="sidebar-item">
-            <i class="bi bi-person-circle"></i> Perfil
-        </a>
-
-        <div class="sidebar-footer">
+      <div class="sidebar-footer">
             <a href="logout.php" class="sidebar-item" style="color: rgba(239,68,68,0.7);">
                 <i class="bi bi-power"></i> Salir del Sistema
             </a>
