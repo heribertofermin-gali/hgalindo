@@ -9,8 +9,41 @@ if (!isset($_SESSION['usuario'])) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+function actualizarVista() {
+    if (fotos.length === 0) { mostrarVacio(); return; }
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    const idActual = fotos[current].id; // Obtenemos el ID de la foto que queremos mostrar
+
+    // Petición AJAX/XHR para obtener los datos dinámicamente
+    $.ajax({
+        url: 'obtener_imagen.php', // Archivo que devuelve una sola imagen por ID
+        type: 'GET',
+        data: { id: idActual },
+        success: function(res) {
+            // Aquí verás la petición en la pestaña "Network" o "Red" de Inspeccionar
+            const foto = typeof res === 'string' ? JSON.parse(res) : res;
+            const stage = $('#contenido-imagen');
+
+            stage.find('.slide, .empty-slide').fadeOut(150, function() {
+                $(this).remove();
+                const slide = $(`
+                    <div class="slide" style="display:none;position:relative;z-index:1;">
+                        <img src="${foto.ruta}" alt="${foto.nombre}">
+                    </div>`);
+                stage.prepend(slide);
+                slide.fadeIn(200);
+            });
+
+            $('#img-name').text(foto.nombre);
+            $('#img-counter').text((current + 1) + ' / ' + fotos.length);
+            $('#monitor-title-label').text(foto.nombre);
+            renderDots();
+        },
+        error: function() {
+            showToast('Error al recuperar datos de la imagen', 'error');
+        }
+    });
+}    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor Pro | TESVG 2026</title>
 
     <!-- Bootstrap -->
@@ -476,7 +509,7 @@ if (!isset($_SESSION['usuario'])) {
             padding: 7px 18px;
             border-radius: 999px;
             font-size: 13px;
-            font-weight: 500;
+             font-weight: 500;
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
             display: inline-flex;
@@ -956,42 +989,6 @@ function cargarFotos() {
     });
 }
 
-function actualizarVista() {
-    if (fotos.length === 0) { mostrarVacio(); return; }
-
-    const idActual = fotos[current].id; // Obtenemos el ID de la foto que queremos mostrar
-
-    // Petición AJAX/XHR para obtener los datos dinámicamente
-    $.ajax({
-        url: 'obtener_imagen.php', // Archivo que devuelve una sola imagen por ID
-        type: 'GET',
-        data: { id: idActual },
-        success: function(res) {
-            // Aquí verás la petición en la pestaña "Network" o "Red" de Inspeccionar
-            const foto = typeof res === 'string' ? JSON.parse(res) : res;
-            const stage = $('#contenido-imagen');
-
-            stage.find('.slide, .empty-slide').fadeOut(150, function() {
-                $(this).remove();
-                const slide = $(`
-                    <div class="slide" style="display:none;position:relative;z-index:1;">
-                        <img src="${foto.ruta}" alt="${foto.nombre}">
-                    </div>`);
-                stage.prepend(slide);
-                slide.fadeIn(200);
-            });
-
-            $('#img-name').text(foto.nombre);
-            $('#img-counter').text((current + 1) + ' / ' + fotos.length);
-            $('#monitor-title-label').text(foto.nombre);
-            renderDots();
-        },
-        error: function() {
-            showToast('Error al recuperar datos de la imagen', 'error');
-        }
-    });
-}
-
 function mostrarVacio(msg = 'Sin capturas en el repositorio') {
     const stage = $('#contenido-imagen');
     // Conservar flechas y dots, solo cambiar el contenido central
@@ -1051,14 +1048,8 @@ function actualizarVista() {
 ================================================================ */
 function changeImage(dir) {
     if (fotos.length <= 1) return;
-
-    // Calculamos el índice para el contador visual
     current = (current + dir + fotos.length) % fotos.length;
-
-    // Ejecutamos la petición AJAX/XHR al servidor para traer los datos reales
     actualizarVista();
-
-    // Mostramos el nombre actualizado que viene del array local
     showToast('Sincronizado · ' + fotos[current].nombre);
 }
 
