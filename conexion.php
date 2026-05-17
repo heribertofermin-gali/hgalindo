@@ -1,12 +1,18 @@
 <?php
 $host = "localhost";
-$user = "hgalindo"; // Usuario
-$pass = "12345678";     // Contraseña
-$db   = "DBProgWeb"; // Nuevo nombre de la base de datos
+$port = "5432"; // Puerto por defecto de Postgres
+$db   = "dbprogweb";
+$user = "hgalindo"; // Tu usuario de PostgreSQL (suele ser postgres)
+$pass = "12345678"; // Pon la contraseña de tu Postgres
 
-$conexion = mysqli_connect($host, $user, $pass, $db);
+// Cadena de conexión para pg_connect
+$conn_string = "host=$host port=$port dbname=$db user=$user password=$pass";
+
+// Conexión nativa a PostgreSQL
+$conexion = pg_connect($conn_string);
 
 if (!$conexion) {
-    die("Error de conexión: " . mysqli_connect_error());
+    // Si falla, enviamos este mensaje (que es el que ves en el cuadrito negro)
+    die("Error de conexión a PostgreSQL."); 
 }
-?>
+

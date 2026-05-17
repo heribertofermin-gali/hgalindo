@@ -1,30 +1,35 @@
 <?php
-// Incluimos la conexión que ya apunta a DBProgWeb
-/** @var mysqli $conexion */
-include 'conexion.php'; 
+ob_start();
+session_start();
 
-// Ordenamos por id de forma descendente para ver lo más reciente primero
-$sql = "SELECT id, nombre, ruta, fecha_registro FROM imagenes ORDER BY id DESC";
-
-$resultado = mysqli_query($conexion, $sql);
-
-if (!$resultado) {
-    // Si falla la consulta, devolvemos el error en JSON
-    echo json_encode(['error' => mysqli_error($conexion)]);
-    exit;
+// Si no hay sesión, devolvemos un arreglo vacío en formato JSON
+if (!isset($_SESSION['usuario'])) {
+    ob_end_clean();
+    echo json_encode([]);
+    exit();
 }
 
-$fotos = [];
+include 'conexion.php';
 
-while($fila = mysqli_fetch_assoc($resultado)) {
-    $fotos[] = $fila;
+$imagenes = array();
+
+if (isset($conexion) && $conexion !== false) {
+    // Consulta nativa de Postgres para traer todas las fotos ordenadas por ID
+    $query = "SELECT id, nombre, ruta FROM imagenes ORDER BY id ASC";
+    $result = pg_query($conexion, $query);
+
+    if ($result) {
+        // Recorremos los resultados y los guardamos en el arreglo
+        while ($row = pg_fetch_assoc($result)) {
+            $imagenes[] = $row;
+        }
+    }
 }
 
-// Establecer el encabezado para que el navegador sepa que recibe JSON
+// Limpiamos cualquier "basura" invisible antes de imprimir el resultado
+ob_end_clean();
+
+// Le decimos al navegador que la respuesta es estrictamente JSON
 header('Content-Type: application/json');
-
-// Devolvemos el arreglo de fotos (vacío o con datos)
-echo json_encode($fotos);
-
-mysqli_close($conexion);
+echo json_encode($imagenes);
 ?>
