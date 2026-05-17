@@ -1,41 +1,39 @@
 <?php
 session_start();
-/** @var mysqli $conexion */
-include 'conexion.php';
-
-// Verificar si el usuario está logueado
 if (!isset($_SESSION['usuario'])) {
-    http_response_code(403);
-    exit('No autorizado');
+    echo 'error_auth';
+    exit();
 }
 
-// Verificar que se recibieron los datos necesarios
-if (isset($_POST['id']) && isset($_POST['ruta'])) {
-    
-    // Convertimos el ID a entero para mayor seguridad
-    $id = (int)$_POST['id']; 
-    $ruta = $_POST['ruta'];
+include 'conexion.php'; // Usa tu $conexion de Postgres
 
-    // 1. Intentar borrar el archivo físico del servidor
-    if (file_exists($ruta)) {
-        unlink($ruta);
-    }
+$id = isset($_POST['id']) ? intval($_POST['id']) : 0;
 
-    // 2. Borrar el registro de la base de datos usando CONSULTAS PREPARADAS
-    // Esto reemplaza las líneas que tenías con $sql y mysqli_query
-    $stmt = $conexion->prepare("DELETE FROM imagenes WHERE id = ?");
-    $stmt->bind_param("i", $id); 
-
-    if ($stmt->execute()) {
-        echo "success";
+if ($id > 0) {
+    // Validar que la conexión de Postgres exista
+    if (isset($conexion) && $conexion !== false) {
+        
+        // Consulta nativa para Postgres con parámetro posicionado ($1)
+        $query = "DELETE FROM imagenes WHERE id = $1";
+        
+        // Dejamos el nombre "" para evitar el error de "prepared statement already exists"
+        $stmt = pg_prepare($conexion, "", $query);
+        
+        if ($stmt) {
+            $result = pg_execute($conexion, "", array($id));
+            
+            if ($result) {
+                echo 'success'; // La palabra exacta que espera tu JS para quitar el "Eliminando..."
+            } else {
+                echo 'error_execute: no se pudo borrar de la BD';
+            }
+        } else {
+            echo 'error_prepare: falla en la consulta';
+        }
     } else {
-        echo "Error: " . $stmt->error;
+        echo 'error_conexion: revisa conexion.php';
     }
-
-    $stmt->close();
 } else {
-    echo "Datos incompletos";
+    echo 'error_id: id inválido';
 }
-
-mysqli_close($conexion);
 ?>
