@@ -1,41 +1,46 @@
 <?php
+ob_start(); // Previene "espacios fantasma" que rompan el AJAX
 session_start();
-/** @var mysqli $conexion */
-include 'conexion.php';
-
-// Verificar si el usuario está logueado
 if (!isset($_SESSION['usuario'])) {
-    http_response_code(403);
-    exit('No autorizado');
+    ob_end_clean();
+    die('error_auth');
 }
 
-// Verificar que se recibieron los datos necesarios
-if (isset($_POST['id']) && isset($_POST['ruta'])) {
+include 'conexion.php'; // Tu conexión mysqli normal
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     
-    // Convertimos el ID a entero para mayor seguridad
-    $id = (int)$_POST['id']; 
-    $ruta = $_POST['ruta'];
+    // El script en AJAX también manda la ruta de la foto física, si la necesitas para borrarla del disco
+    // $ruta = isset($_POST['ruta']) ? trim($_POST['ruta']) : ''; 
 
-    // 1. Intentar borrar el archivo físico del servidor
-    if (file_exists($ruta)) {
-        unlink($ruta);
-    }
-
-    // 2. Borrar el registro de la base de datos usando CONSULTAS PREPARADAS
-    // Esto reemplaza las líneas que tenías con $sql y mysqli_query
-    $stmt = $conexion->prepare("DELETE FROM imagenes WHERE id = ?");
-    $stmt->bind_param("i", $id); 
-
-    if ($stmt->execute()) {
-        echo "success";
+    if ($id > 0 && isset($conexion)) {
+        
+        // Versión MySQLi para prevenir inyecciones
+        $query = "DELETE FROM imagenes WHERE id = ?";
+        $stmt = mysqli_prepare($conexion, $query);
+        
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "i", $id);
+            if (mysqli_stmt_execute($stmt)) {
+                // Éxito: Todo salió perfecto
+                ob_end_clean();
+                die('success'); 
+            } else {
+                ob_end_clean();
+                die('error_bd');
+            }
+            mysqli_stmt_close($stmt);
+        } else {
+            ob_end_clean();
+            die('error_prepare');
+        }
     } else {
-        echo "Error: " . $stmt->error;
+        ob_end_clean();
+        die('error_conexion_id');
     }
-
-    $stmt->close();
 } else {
-    echo "Datos incompletos";
+    ob_end_clean();
+    die('error_method');
 }
-
-mysqli_close($conexion);
 ?>
