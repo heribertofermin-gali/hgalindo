@@ -889,65 +889,60 @@ if (!isset($_SESSION['usuario'])) {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 /* ================================================================
-   ESTADO GLOBAL
+   ESTADO GLOBAL (Adaptado para 1 sola foto)
 ================================================================ */
-let current = 0;
-let fotos   = [];
+let fotoActual = null;
 
 /* ================================================================
-   TOAST
+   TOAST (Notificaciones)
 ================================================================ */
 function showToast(msg, type = 'success') {
     const t  = $('#toast-msg');
     const ic = t.find('i');
     $('#toast-text').text(msg);
     t.removeClass('success error').addClass(type);
-    ic.attr('class', type === 'success'
-        ? 'bi bi-check-circle-fill'
-        : 'bi bi-exclamation-circle-fill');
+    ic.attr('class', type === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-circle-fill');
     t.addClass('show');
     setTimeout(() => t.removeClass('show'), 3000);
 }
 
 /* ================================================================
-   DOTS INDICADORES
+   CARGAR FOTO (Petición XHR para el Profesor)
 ================================================================ */
-function renderDots() {
-    const wrap = $('#dot-indicators');
-    wrap.empty();
-    fotos.forEach(function(_, i) {
-        wrap.append(`<div class="dot ${i === current ? 'active' : ''}"
-                          onclick="jumpTo(${i})"></div>`);
-    });
-}
+function cargarFoto(direccion) {
+    // Si no hay foto actual, mandamos el ID 0
+    let actualId = fotoActual ? fotoActual.id : 0;
 
-function jumpTo(idx) {
-    current = idx;
-    actualizarVista();
-}
-
-/* ================================================================
-   CARGAR FOTOS
-================================================================ */
-function cargarFotos() {
     $.ajax({
-        url: 'obtener_todas.php',
+        url: 'obtener_imagen.php', // USA TU ARCHIVO SQL PERFECTO
         type: 'GET',
+        data: { direccion: direccion, actual: actualId },
         success: function(res) {
-            try {
-                fotos = typeof res === 'string' ? JSON.parse(res) : res;
-            } catch(e) {
-                fotos = [];
+            if (res.error) {
+                mostrarVacio(res.error);
+                return;
             }
 
-            if (fotos.length > 0) {
-                let params = new URLSearchParams(window.location.search);
-                let idx = parseInt(params.get('idx'));
-                if (!isNaN(idx) && idx >= 0 && idx < fotos.length) current = idx;
-                actualizarVista();
-            } else {
-                mostrarVacio();
-            }
+            fotoActual = res;
+
+            // Actualizar la interfaz suavemente
+            const stage = $('#contenido-imagen');
+            stage.find('.slide, .empty-slide').fadeOut(150, function() {
+                $(this).remove();
+                const slide = $(`
+                    <div class="slide" style="display:none;position:relative;z-index:1;">
+                        <img src="${fotoActual.ruta}" alt="${fotoActual.nombre}">
+                    </div>`);
+                stage.prepend(slide);
+                slide.fadeIn(200);
+            });
+
+            $('#img-name').text(fotoActual.nombre);
+            $('#monitor-title-label').text(fotoActual.nombre);
+            
+            // Usamos el ID real de la BD en el contador
+            $('#img-counter').text('ID: ' + fotoActual.id);
+            $('#dot-indicators').empty(); 
         },
         error: function() {
             mostrarVacio('Error al conectar con el servidor');
@@ -957,7 +952,6 @@ function cargarFotos() {
 
 function mostrarVacio(msg = 'Sin capturas en el repositorio') {
     const stage = $('#contenido-imagen');
-    // Conservar flechas y dots, solo cambiar el contenido central
     stage.find('.slide, .empty-slide').remove();
     stage.prepend(`
         <div class="empty-slide" style="position:relative;z-index:1;">
@@ -965,51 +959,22 @@ function mostrarVacio(msg = 'Sin capturas en el repositorio') {
             <p>${msg}</p>
         </div>`);
     $('#img-name').text('Sin archivos');
+    $('#monitor-title-label').text('Sin archivo');
     $('#img-counter').text('0 / 0');
-    $('#monitor-title-label').text('Sin archivo seleccionado');
-    $('#dot-indicators').empty();
+    fotoActual = null;
 }
 
 /* ================================================================
-   ACTUALIZAR VISTA
-================================================================ */
-function actualizarVista() {
-    if (fotos.length === 0) { mostrarVacio(); return; }
-
-    const foto  = fotos[current];
-    const stage = $('#contenido-imagen');
-
-    // Remover slide anterior
-    stage.find('.slide, .empty-slide').fadeOut(150, function() {
-        $(this).remove();
-
-        const slide = $(`
-            <div class="slide" style="display:none;position:relative;z-index:1;">
-                <img src="${foto.ruta}" alt="${foto.nombre}">
-            </div>`);
-
-        // Insertar antes de las flechas y dots
-        stage.prepend(slide);
-        slide.fadeIn(200);
-    });
-
-    $('#img-name').text(foto.nombre);
-    $('#img-counter').text((current + 1) + ' / ' + fotos.length);
-    $('#monitor-title-label').text(foto.nombre);
-    renderDots();
-}
-
-/* ================================================================
-   NAVEGACIÓN
+   NAVEGACIÓN (Dispara XHR al instante)
 ================================================================ */
 function changeImage(dir) {
-    if (fotos.length <= 1) return;
-    current = (current + dir + fotos.length) % fotos.length;
-    actualizarVista();
-    showToast('Sincronizado · ' + fotos[current].nombre);
+    if (!fotoActual) return;
+    // Si la flecha es 1, mandamos 'next', si es -1 mandamos 'prev'
+    let direccion = (dir === 1) ? 'next' : 'prev';
+    cargarFoto(direccion);
 }
 
-// Teclado
+// Control por Teclado
 $(document).on('keydown', function(e) {
     if (e.key === 'ArrowLeft')  changeImage(-1);
     if (e.key === 'ArrowRight') changeImage(1);
@@ -1019,14 +984,14 @@ $(document).on('keydown', function(e) {
    ELIMINAR
 ================================================================ */
 function eliminarImagenActual() {
-    if (fotos.length === 0) return;
-    $('#delete-confirm-name').text('Se eliminará: "' + fotos[current].nombre + '"');
+    if (!fotoActual) return;
+    $('#delete-confirm-name').text('Se eliminará: "' + fotoActual.nombre + '"');
     $('#delete-confirm').slideDown(200);
     $('#btn-borrar').prop('disabled', true).css('opacity', '.5');
     cerrarEdicion();
 
     $('#btn-confirmar-borrar').off().on('click', function() {
-        confirmarBorrado(fotos[current].id, fotos[current].ruta);
+        confirmarBorrado(fotoActual.id, fotoActual.ruta);
     });
 }
 
@@ -1046,14 +1011,9 @@ function confirmarBorrado(id, ruta) {
             if (res.trim() === 'success') {
                 showToast('Registro eliminado correctamente.');
                 cancelarBorrado();
-                // Ajustar índice y recargar
-                fotos.splice(current, 1);
-                if (current >= fotos.length) current = Math.max(0, fotos.length - 1);
-                if (fotos.length === 0) {
-                    mostrarVacio();
-                } else {
-                    actualizarVista();
-                }
+                
+                // Pedimos automáticamente la siguiente foto para rellenar el hueco
+                cargarFoto('next'); 
             } else {
                 showToast('Error al eliminar: ' + res, 'error');
                 $('#btn-confirmar-borrar').text('Confirmar').prop('disabled', false);
@@ -1070,8 +1030,8 @@ function confirmarBorrado(id, ruta) {
    EDITAR NOMBRE
 ================================================================ */
 function abrirEdicion() {
-    if (fotos.length === 0) return;
-    $('#edit-nombre-input').val(fotos[current].nombre);
+    if (!fotoActual) return;
+    $('#edit-nombre-input').val(fotoActual.nombre);
     $('#edit-name-box').slideDown(200);
     $('#btn-editar').prop('disabled', true).css('opacity', '.5');
     $('#delete-confirm').slideUp(100);
@@ -1086,26 +1046,25 @@ function cerrarEdicion() {
 function confirmarEdicion() {
     const nuevoNombre = $('#edit-nombre-input').val().trim();
     if (!nuevoNombre) { showToast('El nombre no puede estar vacío.', 'error'); return; }
-    if (nuevoNombre === fotos[current].nombre) { cerrarEdicion(); return; }
+    if (nuevoNombre === fotoActual.nombre) { cerrarEdicion(); return; }
 
-    const id = fotos[current].id;
     $('#btn-confirmar-editar').html('<i class="bi bi-arrow-repeat"></i> Guardando...').prop('disabled', true);
 
     $.ajax({
         url: 'editar_nombre.php',
         type: 'POST',
-        data: { id: id, nombre: nuevoNombre },
+        data: { id: fotoActual.id, nombre: nuevoNombre },
         success: function(res) {
             $('#btn-confirmar-editar').html('<i class="bi bi-check-lg"></i> Guardar').prop('disabled', false);
-            const ok = res.trim().toLowerCase() === 'success' || res.trim() === '1';
-            if (ok) {
-                fotos[current].nombre = nuevoNombre;
+            
+            if (res.trim().toLowerCase() === 'success' || res.trim() === '1') {
+                fotoActual.nombre = nuevoNombre;
                 $('#img-name').text(nuevoNombre);
                 $('#monitor-title-label').text(nuevoNombre);
                 cerrarEdicion();
                 showToast('Nombre actualizado correctamente.');
             } else {
-                showToast('Error al actualizar: ' + res, 'error');
+                showToast('Error al actualizar.', 'error');
             }
         },
         error: function() {
@@ -1116,9 +1075,12 @@ function confirmarEdicion() {
 }
 
 /* ================================================================
-   INIT
+   INICIAR EL VISOR
 ================================================================ */
-$(document).ready(cargarFotos);
+$(document).ready(function() {
+    // Al abrir la página, simulamos un clic en "Siguiente" para traer la primera foto
+    cargarFoto('next'); 
+});
 </script>
 
 </body>
